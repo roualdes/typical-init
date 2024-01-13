@@ -17,10 +17,10 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
     number_leapfrogs = np.zeros(steps)
     number_divergences = 0
     position_uturn = 0
-    momentum_uturn = 0 
+    momentum_uturn = 0
+    count_momentum_uturn = {"m_mn": 0, "m_ms": 0, "ms_mn": 0, "mb_mn": 0, "mb_ms": 0}
     either_uturn = 0
     gradient = np.zeros(dim)
-    cosines = []
 
     for step in range(steps):
         n_leapfrog = 0
@@ -42,7 +42,7 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
         position_backwards = position.copy()
         gradient_backwards = gradient.copy()
         leapfrog(position_backwards, momentum_backwards, -1 * direction * step_size, 1, gradient_backwards, ldg)
-        momentum_previous = momentum.copy()
+        momentum_subtree = momentum.copy()
         max_distance = -np.inf
         momentum_total = momentum_backwards.copy()
 
@@ -68,14 +68,22 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
                 break
 
             momentum_total += momentum_new
-            u_turned, a, b = u_turn(momentum, momentum_new, momentum_total, cut_off = cut_off)
-            u_turned2, a, b = u_turn(momentum_previous, momentum_new, momentum_total, cut_off = cut_off)  
-            u_turned3, a, b = u_turn(momentum_backwards, momentum_new, momentum_total, cut_off = cut_off)  
-            u_turned4, a, b = u_turn(momentum_backwards, momentum_previous, momentum_total, cut_off = cut_off)  
+            u_turn_m_mn = u_turn(momentum, momentum_new, momentum_total, cut_off = cut_off)
+            count_momentum_uturn["m_mn"] += u_turn_m_mn
             
-            u_turned |= u_turned2
-            u_turned |= u_turned3
-            u_turned |= u_turned4
+            u_turn_m_ms = u_turn(momentum, momentum_subtree, momentum_total, cut_off = cut_off)
+            count_momentum_uturn["m_ms"] += u_turn_m_ms
+            
+            u_turn_ms_mn = u_turn(momentum_subtree, momentum_new, momentum_total, cut_off = cut_off)  
+            count_momentum_uturn["ms_mn"] += u_turn_ms_mn
+            
+            u_turn_mb_mn = u_turn(momentum_backwards, momentum_new, momentum_total, cut_off = cut_off)  
+            count_momentum_uturn["mb_mn"] += u_turn_mb_mn
+            
+            u_turn_mb_ms = u_turn(momentum_backwards, momentum_subtree, momentum_total, cut_off = cut_off)  
+            count_momentum_uturn["mb_ms"] += u_turn_mb_ms
+
+            u_turned = u_turn_m_mn | u_turn_m_ms | u_turn_ms_mn | u_turn_mb_mn | u_turn_mb_ms
             if u_turned:
                 p_uturned = True
                 
@@ -86,7 +94,7 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
                 max_distance = new_distance
                 
             if power_two(n_leapfrog):
-                momentum_previous = momentum_new.copy()
+                momentum_subtree = momentum_new.copy()
 
             position_uturn += q_uturned 
             momentum_uturn += p_uturned 
@@ -111,5 +119,5 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
         "position_uturn": position_uturn,
         "either_uturn": either_uturn,
         "step_size": step_size,
-        "cosines": cosines,
+        "count_momentum_uturn": count_momentum_uturn,
     }
