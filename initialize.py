@@ -16,17 +16,17 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
 
     number_leapfrogs = np.zeros(steps)
     number_divergences = 0
-    position_uturn = 0
+    # position_uturn = 0
     momentum_uturn = 0
     count_momentum_uturn = {"m_mn": 0, "m_ms": 0, "ms_mn": 0, "mb_mn": 0, "mb_ms": 0}
-    either_uturn = 0
+    # either_uturn = 0
     gradient = np.zeros(dim)
 
     for step in range(steps):
         n_leapfrog = 0
         alpha = 0.0
         u_turned = False
-        q_uturned = False
+        # q_uturned = False
         p_uturned = False
         divergent = False
         momentum = rng.normal(size = dim)
@@ -87,20 +87,20 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
             if u_turned:
                 p_uturned = True
                 
-            new_distance = np.linalg.norm(position_new - position)
-            if new_distance <= max_distance:
-                q_uturned = True
-            else:
-                max_distance = new_distance
+            # new_distance = np.linalg.norm(position_new - position)
+            # if new_distance <= max_distance:
+            #     q_uturned = True
+            # else:
+            #     max_distance = new_distance
                 
             if power_two(n_leapfrog):
                 momentum_subtree = momentum_new.copy()
 
-            position_uturn += q_uturned 
+            # position_uturn += q_uturned 
             momentum_uturn += p_uturned 
-            either_uturn += p_uturned or q_uturned
+            # either_uturn += p_uturned or q_uturned
 
-            if q_uturned or p_uturned:
+            if p_uturned: # q_uturned:
                 break
 
         number_leapfrogs[step] = n_leapfrog
@@ -116,8 +116,8 @@ def initialize(rng, dim, ldg, steps = 75, max_leapfrogs = 1_000, max_delta_H = 1
         "number_leapfrogs": number_leapfrogs,
         "number_divergences": number_divergences,
         "momentum_uturn": momentum_uturn,
-        "position_uturn": position_uturn,
-        "either_uturn": either_uturn,
+        # "position_uturn": position_uturn,
+        # "either_uturn": either_uturn,
         "step_size": step_size,
         "count_momentum_uturn": count_momentum_uturn,
     }
